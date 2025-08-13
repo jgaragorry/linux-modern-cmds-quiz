@@ -1,9 +1,11 @@
 // Año footer
 document.getElementById('year').textContent = new Date().getFullYear();
 
+// Claves de almacenamiento
+const STORAGE = { BEST: 'linux-modern-quiz_best', LAST: 'linux-modern-quiz_last' };
+
 /**
  * Preguntas (todas single-choice)
- * - code option: renderiza como bloque de código
  */
 const QUESTIONS = [
   {
@@ -23,8 +25,7 @@ const QUESTIONS = [
       { key: "d", code: true, label: `rg -n -P --hidden --no-ignore '\\\\bprintf\\(' .git node_modules` },
     ],
     correct: "a",
-    explain:
-      "La combinación requerida: -P (PCRE2), --hidden, --no-ignore y exclusiones con -g '!.git/' y -g '!node_modules/'. -n explicita números."
+    explain: "La combinación requerida: -P (PCRE2), --hidden, --no-ignore y exclusiones con -g '!.git/' y -g '!node_modules/'. -n explicita números."
   },
   {
     id: "q2",
@@ -42,8 +43,7 @@ const QUESTIONS = [
       { key: "d", code: true, label: `fd -uu -e sh -x echo` },
     ],
     correct: "a",
-    explain:
-      "El patrón REGEX \\.sh$, -H (ocultos), -I (ignorados), -t f (archivos) y --strip-cwd-prefix (rutas relativas)."
+    explain: "El patrón REGEX \\.sh$, -H (ocultos), -I (ignorados), -t f (archivos) y --strip-cwd-prefix (rutas relativas)."
   },
   {
     id: "q3",
@@ -56,8 +56,7 @@ const QUESTIONS = [
       { key: "d", code: true, label: `bat --pager=off --lines 120..160 src/app.py` },
     ],
     correct: "a",
-    explain:
-      "`--line-range 120:160` recorta; `--style=numbers,changes` añade números y marcas; `--paging=never` evita pager."
+    explain: "`--line-range 120:160` recorta; `--style=numbers,changes` añade números y marcas; `--paging=never` evita pager."
   },
   {
     id: "q4",
@@ -70,8 +69,7 @@ const QUESTIONS = [
       { key: "d", code: true, label: `eza -lha --git --group-directories-first` },
     ],
     correct: "a",
-    explain:
-      "`-l -a -h`, `--git`, `--group-directories-first`, `-s modified` y `-r` (desc)."
+    explain: "`-l -a -h`, `--git`, `--group-directories-first`, `-s modified` y `-r` (desc)."
   },
   {
     id: "q5",
@@ -84,8 +82,7 @@ const QUESTIONS = [
       { key: "d", code: true, label: `1) ncdu\n2) df -h` },
     ],
     correct: "a",
-    explain:
-      "duf reemplaza df con tabla clara; dust reemplaza du con vista compacta y `-d 2` limita profundidad."
+    explain: "duf reemplaza df con tabla clara; dust reemplaza du con vista compacta y `-d 2` limita profundidad."
   },
   {
     id: "q6",
@@ -102,13 +99,12 @@ const QUESTIONS = [
 `j(){ cd "$(zoxide query -i)" || return; }` },
     ],
     correct: "a",
-    explain:
-      "`zoxide query -l` lista destinos; `fzf` selecciona; `cd \"$d\"`. La opción (d) usa -i interactivo de zoxide (no estándar en todas las versiones) y no integra fzf."
+    explain: "`zoxide query -l` lista destinos; `fzf` selecciona; `cd \"$d\"`."
   },
   {
     id: "q7",
     type: "single",
-    prompt: "Benchmark justo entre 'rg foo src/' y 'grep -R foo src/' con 5 warmups, 10 repeticiones y salida JSON a bench.json.",
+    prompt: "Benchmark justo entre 'rg foo src/' y 'grep -R foo src/' con 5 warmups, 10 repeticiones y salida JSON.",
     options: [
       { key: "a", code: true, label: `hyperfine -w 5 -r 10 'rg foo src/' 'grep -R foo src/' --export-json bench.json` },
       { key: "b", code: true, label: `hyperfine --warmup 5 --runs 10 rg foo src/ grep -R foo src/ > bench.json` },
@@ -116,8 +112,7 @@ const QUESTIONS = [
       { key: "d", code: true, label: `time rg foo src/ && time grep -R foo src/` },
     ],
     correct: "a",
-    explain:
-      "`-w 5` warmups, `-r 10` runs, comandos entre comillas, `--export-json bench.json` para JSON."
+    explain: "`-w 5` warmups, `-r 10` runs, comillas por comando, `--export-json bench.json`."
   },
   {
     id: "q8",
@@ -139,8 +134,7 @@ git config --global color.ui always` },
 `git delta --global enable` },
     ],
     correct: "a",
-    explain:
-      "Se establece delta como pager y se activa navegación; el tema es opcional."
+    explain: "Se establece delta como pager y se activa navegación; el tema es opcional."
   },
 ];
 
@@ -151,6 +145,9 @@ list.innerHTML = QUESTIONS.map((q, idx) => renderQuestion(q, idx+1)).join('');
 // Botones
 document.getElementById('gradeBtn').addEventListener('click', grade);
 document.getElementById('resetBtn').addEventListener('click', resetQuiz);
+
+// Mostrar best score si existe
+showBestScoreHint();
 
 function renderQuestion(q, n){
   const opts = q.options.map(o => `
@@ -175,38 +172,103 @@ function renderQuestion(q, n){
 }
 
 function grade(){
+  const result = document.getElementById('result');
+  clearMarks();
+
+  // Validar que estén todas respondidas
+  const missing = QUESTIONS.filter(q => !getSelected(q.id));
+  if (missing.length) {
+    result.classList.remove('good'); result.classList.add('bad');
+    result.innerHTML = `Te faltan <strong>${missing.length}</strong> pregunta(s). Completa todas antes de calificar.`;
+    focusQuestion(missing[0].id);
+    return;
+  }
+
   let correct = 0;
   QUESTIONS.forEach(q => {
     const chosen = getSelected(q.id);
     const box = document.getElementById(`${q.id}-explain`);
     const isRight = chosen === q.correct;
-    if(isRight) correct++;
+    if (isRight) correct++;
+
+    // Marcar visualmente
+    markOption(q.id, q.correct, 'ok');
+    if (chosen && chosen !== q.correct) markOption(q.id, chosen, 'ko');
+
+    // Mostrar explicación
     box.hidden = false;
     box.innerHTML = `<strong>${isRight ? '✅ Correcto' : '❌ Incorrecto'}</strong><br>${escapeHtml(q.explain)}`;
   });
 
   const score = Math.round((correct / QUESTIONS.length) * 100);
-  const result = document.getElementById('result');
+  const bestPrev = Number(localStorage.getItem(STORAGE.BEST) || 0);
+  localStorage.setItem(STORAGE.LAST, String(score));
+  if (score > bestPrev) localStorage.setItem(STORAGE.BEST, String(score));
+
   result.classList.remove('good','bad');
   result.classList.add(score >= 75 ? 'good' : 'bad');
-  result.innerHTML = `Puntaje: <strong>${score}%</strong> (${correct}/${QUESTIONS.length}) · ${score>=75 ? '¡Excelente!' : 'Sigue practicando 💪'}`;
+  const bestNow = Number(localStorage.getItem(STORAGE.BEST) || score);
+  result.innerHTML = `Puntaje: <strong>${score}%</strong> (${correct}/${QUESTIONS.length}) · ${score>=75 ? '¡Excelente!' : 'Sigue practicando 💪'}<br><small>Mejor puntaje: ${bestNow}%</small>`;
   result.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 function resetQuiz(){
-  QUESTIONS.forEach(q => {
-    const box = document.getElementById(`${q.id}-explain`);
-    box.hidden = true;
-    box.textContent = '';
-  });
+  // inputs se limpian por el botón type=reset
+  document.querySelectorAll('.explain').forEach(b => { b.hidden = true; b.textContent = ''; });
   const result = document.getElementById('result');
   result.textContent = '';
   result.classList.remove('good','bad');
+  clearMarks();
+}
+
+function clearMarks(){
+  document.querySelectorAll('.q').forEach(li => li.classList.remove('missing'));
+  document.querySelectorAll('label.option').forEach(l => l.classList.remove('ok','ko'));
+}
+
+function markOption(qId, key, cls){
+  const input = document.querySelector(`#${qId} input[type="radio"][value="${key}"]`);
+  if (!input) return;
+  const label = input.closest('label.option');
+  if (label) label.classList.add(cls);
 }
 
 function getSelected(id){
   const el = document.querySelector(`input[name="${id}"]:checked`);
   return el ? el.value : null;
+}
+
+function focusQuestion(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('missing');
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  const first = el.querySelector('input[type="radio"]');
+  if (first) first.focus();
+}
+
+function showBestScoreHint(){
+  const best = localStorage.getItem(STORAGE.BEST);
+  if (!best) return;
+  const result = document.getElementById('result');
+  result.classList.add('good');
+  result.innerHTML = `Mejor puntaje previo: <strong>${best}%</strong>`;
+}
+
+// Copiar al hacer click en bloques de código
+document.addEventListener('click', (e) => {
+  const code = e.target.closest('pre > code');
+  if (!code) return;
+  const text = code.innerText;
+  navigator.clipboard?.writeText(text).then(() => toast('Copiado al portapapeles')).catch(()=>{});
+});
+
+function toast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.remove(); }, 1400);
 }
 
 function escapeHtml(s){
