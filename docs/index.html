@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz – Comandos Modernos en Linux</title>
+  <meta name="description" content="Quiz avanzado de comandos modernos en Linux: ripgrep, fd, bat, eza, duf, dust, zoxide, fzf, hyperfine, git-delta." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="container">
+    <h1>Quiz – Comandos Modernos en Linux</h1>
+    <p class="sub">rg • fd • bat • eza • duf • dust • zoxide • fzf • hyperfine • delta</p>
+  </header>
+
+  <main class="container">
+    <section id="intro" class="card">
+      <h2>Instrucciones</h2>
+      <ul>
+        <li>Responde las 8 preguntas y pulsa <strong>Calificar</strong>.</li>
+        <li>Verás tu puntaje y las <em>explicaciones</em>.</li>
+        <li>Puedes <strong>Reintentar</strong> cuando quieras.</li>
+      </ul>
+    </section>
+
+    <form id="quizForm" class="card" novalidate>
+      <ol id="questions" class="q-list"><!-- inyectado por JS --></ol>
+
+      <div class="actions">
+        <button type="button" id="gradeBtn" class="btn primary">Calificar</button>
+        <button type="reset" id="resetBtn" class="btn">Reintentar</button>
+      </div>
+
+      <div id="result" class="result" aria-live="polite"></div>
+    </form>
+
+    <section class="card">
+      <h2>Cheat-sheet rápido</h2>
+      <div class="grid">
+        <div>
+          <h3>rg (ripgrep)</h3>
+          <pre><code>rg -n -P --hidden --no-ignore -g '!.git/' PATTERN</code></pre>
+        </div>
+        <div>
+          <h3>fd</h3>
+          <pre><code>fd -H -I -t f REGEX --strip-cwd-prefix</code></pre>
+        </div>
+        <div>
+          <h3>bat</h3>
+          <pre><code>bat --line-range A:B --style=numbers,changes --paging=never file</code></pre>
+        </div>
+        <div>
+          <h3>eza</h3>
+          <pre><code>eza -lah --git --group-directories-first -s modified -r</code></pre>
+        </div>
+        <div>
+          <h3>duf / dust</h3>
+          <pre><code>duf        # reemplazo de df
+dust -d 2  # reemplazo de du</code></pre>
+        </div>
+        <div>
+          <h3>zoxide + fzf</h3>
+          <pre><code>j(){ cd "$(zoxide query -l | fzf)" || return; }</code></pre>
+        </div>
+        <div>
+          <h3>hyperfine</h3>
+          <pre><code>hyperfine -w 5 -r 10 'cmd1' 'cmd2' --export-json out.json</code></pre>
+        </div>
+        <div>
+          <h3>git-delta</h3>
+          <pre><code>git config --global core.pager delta</code></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container footer">
+    <small>© <span id="year"></span> Linux Modern Commands Quiz · MIT</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
