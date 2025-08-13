@@ -76,3 +76,27 @@ label.option.ko{border-color:#ef4444;box-shadow:0 0 0 2px rgba(239,68,68,.25)}
   background:#0b1220;border:1px solid #1f2937;color:var(--ink);
   padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:1000
 }
+/* === Fix desbordes en bloques de código y opciones === */
+
+/* 1) Permitir que el contenedor flex de cada opción se encoja */
+label.option .code{ min-width: 0; }  /* clave: sin esto, el <pre> fuerza el ancho */
+
+/* 2) Asegurar que TODOS los <pre> no hagan crecer la tarjeta */
+pre{
+  max-width: 100%;
+  overflow: auto;                 /* agrega scroll si hace falta */
+  white-space: pre-wrap;          /* permite salto de línea */
+}
+pre code{
+  overflow-wrap: anywhere;        /* parte tokens largos si no hay espacios */
+  word-break: break-word;
+}
+
+/* 3) En el cheat-sheet (grid), permitir que las tarjetas se encojan */
+.grid > *{ min-width: 0; }
+
+/* 4) En pantallas muy pequeñas, forzar 1 columna para más aire */
+@media (max-width: 420px){
+  .grid{ grid-template-columns: 1fr; }
+}
+
